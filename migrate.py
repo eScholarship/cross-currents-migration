@@ -3,6 +3,7 @@
 # MIGRATE.PY
 # - A quick little Python3 script to convert Cross-Currents eJournal metadata into 
 #   eScholarship batch load format
+# - Currently skips photo essays, intentionally, we'll work on those next
 
 # HEADERS IN THE ARTICLES DATA -> CDL HEADER
 # Content ID
