@@ -38,6 +38,7 @@
 # Link
 
 # TODO: finish up getting the metadata in the right slots for a batch
+# - these remain: pub_order,disciplines,keywords,abstract,acknowledgements,pdf_url,supplementalfile_url,supplementafile_label,supplementalfile_description
 # TODO: figure out where to put any extra metadata
 # TODO: figure out whether multi-author-name-handling is important, and what to do about it
 
