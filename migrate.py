@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+
+# MIGRATE.PY
+# - A quick little Python3 script to convert Cross-Currents eJournal metadata into 
+#   eScholarship batch load format
+
 # HEADERS IN THE ARTICLES DATA -> CDL HEADER
 # Content ID
 # Issue ID
@@ -30,6 +36,10 @@
 # Editor Display (Reading)
 # Link
 
+# TODO: finish up getting the metadata in the right slots for a batch
+# TODO: figure out where to put any extra metadata
+# TODO: figure out whether multi-author-name-handling is important, and what to do about it
+
 import sys
 import csv
 from nameparser import HumanName
@@ -45,7 +55,7 @@ csv.field_size_limit(sys.maxsize)
 
 cdl_headers='unit_id,eschol_id,journal,volume,issue,pub_date,title,pub_status,peer_review,section_header,author_firstname,author_middlename,author_lastname,author_suffix,author_institution,author_email,org_author,doi,first_page,last_page,issn,pub_order,disciplines,keywords,abstract,acknowledgements,pdf_url,supplementalfile_url,supplementafile_label,supplementalfile_description'
 
-######### step one, gather issue data into a dictionary
+######### step one, gather issue data into a set of dictionaries
 
 # instantiate some Dictionaries for later use
 IssueDate = dict()
@@ -154,22 +164,22 @@ with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvf
 
       #author_firstname
       pq()
-      print (name.first(), end='')
+      print (name.first, end='')
       pqc()
       
       #author_middlename
       pq()
-      print (name.middle(), end='')
+      print (name.middle, end='')
       pqc()
       
       #author_lastname
       pq()
-      print (name.last(), end='')
+      print (name.last, end='')
       pqc()
       
       #author_suffix
       pq()
-      print (name.suffix(), end='')
+      print (name.suffix, end='')
       pqc()
       
       #author_institution
