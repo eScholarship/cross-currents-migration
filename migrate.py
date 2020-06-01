@@ -54,6 +54,7 @@
 
 import sys
 import csv
+import re
 from nameparser import HumanName
 from urlextract import URLExtract
 import urllib
@@ -64,6 +65,12 @@ def pq():
 def pqc():
   print('",', end='')
 
+def cleanhtml(raw_html):
+  cleanr = re.compile('<.*?>')
+  cleantext = re.sub(cleanr, '', raw_html)
+  cleanr = re.compile('Keywords: ')
+  cleantext = re.sub(cleanr, '', cleantext)
+  return cleantext
 
 csv.field_size_limit(sys.maxsize)
 
@@ -90,7 +97,7 @@ with open('cross-currents-export-issues-1586192032.csv', 'r', 1, 'utf-8-sig') as
 with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvfile:
   article_reader = csv.DictReader(csvfile, delimiter=",", quotechar='"')
 
-  print(cdl_headers+'\n')
+  print(cdl_headers)
 
   for row in article_reader:
 
@@ -247,14 +254,38 @@ with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvf
     pqc()
     
     #pub_order
+    pq()
+    print(row['Sort Order'], end='')
+    pqc()
     
     #disciplines
+    pq()
+    print('Arts and Humanities', end='')
+    pqc()
     
     #keywords
+    # listed at the end of the abstract, a line that starts: <p><strong>Keywords</strong>:
+    pq()
+    abstract = row['Abstract']
+    # commenting out keyword extraction because we don't actually use keywords, but, I will leave this here as proof that I figured out how to extract them from the abstract
+    # if abstract.__len__() > 0:
+    #   lines_in_abstract = abstract.splitlines()
+    #   last_line = len(lines_in_abstract) -1 #lists are zero-based 
+    #   raw_keywords = lines_in_abstract[last_line]
+    #   keywords = cleanhtml(raw_keywords)
+    #   print(keywords, end='')
+    # else:
+    print('', end='')
+    pqc()
     
     #abstract
+    pq()
+    print(abstract, end='')
+    pqc()
     
-    #acknowledgements
+    #acknowledgements (leave blank, but might be able to extract from the article body)
+    pq()
+    pqc()
     
     #pdf_url, extract from the File column
     extractor = URLExtract()
@@ -266,12 +297,17 @@ with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvf
     pq()
     print(urllib.parse.unquote(pdf_url), end='')
     pqc()
-
     
     #supplementalfile_url
+    pq()
+    pqc()
     
     #supplementafile_label
+    pq()
+    pqc()
     
     #supplementalfile_description
+    pq()
+    pqc()
 
     print('') # let's wrap this up
