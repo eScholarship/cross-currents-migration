@@ -38,13 +38,25 @@
 # Link
 
 # TODO: finish up getting the metadata in the right slots for a batch
-# - these remain: pub_order,disciplines,keywords,abstract,acknowledgements,pdf_url,supplementalfile_url,supplementafile_label,supplementalfile_description
+# - these remain: 
+#     - pub_order
+#     - disciplines
+#     - keywords
+#     - abstract
+#     - acknowledgements
+#     - pdf_url
+#     - supplementalfile_url
+#     - supplementafile_label
+#     - supplementalfile_description
+#
 # TODO: figure out where to put any extra metadata
 # TODO: figure out whether multi-author-name-handling is important, and what to do about it
 
 import sys
 import csv
 from nameparser import HumanName
+from urlextract import URLExtract
+import urllib
 
 def pq():
   print('"', end='')
@@ -82,8 +94,12 @@ with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvf
 
   for row in article_reader:
 
-    #short-circuit this by skipping all photo essays
+    #short-circuit this by skipping all photo essays, Readings - Info and Editors' Notes
     if row['Content type']=='Photo Essay':
+      continue
+    if row['Content type']=='Readings - Info':
+      continue
+    if row['Article Type']=='Editors&#039; Note':
       continue
 
     #unit_id (always 'crossscurrents')
@@ -124,7 +140,7 @@ with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvf
     
     #pub_status
     pq()
-    print('published', end='')
+    print('externalPub', end='')
     pqc()
     
     #peer_review
@@ -189,19 +205,42 @@ with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvf
       print(affiliation, end='')
       pqc()
     
-    #author_email (can have more than one)
+    #author_email (input can have more than one, batch only wants one)
+    # TODO - handle multiple e-mail addresses correctly
     pq()
     print(row['Author Email'], end='')
     pqc()
     
-    #org_author
+    #org_author (not used for Cross-Currents, ignore)
+    pq()
+    pqc()
     
     #doi
-    
+    # Hmm.... there are some DOIs present in the export, but they are not in a consistent location, skip for now.
+    pq()
+    pqc()
+
     #first_page
+    pq()
+    pages = row['Page Numbers']
+    if len(pages.split('-')) > 1: 
+      first_page = pages.split('-')[0]
+    else:
+      first_page = ''
+    if len(pages.split('-')) > 2:
+      last_page = pages.split('-')[1]
+    else:
+      last_page = ''
+    print(first_page, end='')
+    if first_page.__len__() > 0 and last_page.__len__() == 0:
+      last_page = first_page
+    pqc()
     
     #last_page
-    
+    pq()
+    print(last_page, end='')
+    pqc()
+
     #issn
     pq()
     print(IssueISSN[i], end='')
@@ -217,7 +256,17 @@ with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvf
     
     #acknowledgements
     
-    #pdf_url
+    #pdf_url, extract from the File column
+    extractor = URLExtract()
+    pdf_urls = extractor.find_urls(row['File'])
+    if len(pdf_urls) >= 1: #sometimes the extractor finds more than one URL, we should just always use the first
+      pdf_url = pdf_urls[0]
+    else:
+      pdf_url = 'ERROR, no PDF URL found, content-type: ' + row['Content type'] + '; Content ID: ' + row['Content ID'] + '; Article Type: ' + row['Article Type']
+    pq()
+    print(urllib.parse.unquote(pdf_url), end='')
+    pqc()
+
     
     #supplementalfile_url
     

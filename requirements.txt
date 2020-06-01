@@ -1,1 +1,5 @@
 nameparser
+idna
+uritools
+appdirs
+urlextract
