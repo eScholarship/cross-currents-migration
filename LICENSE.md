@@ -1,7 +1,7 @@
 Modified BSD License
 ====================
 
-_Copyright © `<year>`, `<copyright holder>`_  
+_Copyright © `2020`, `The Regents of the University of California`_  
 _All rights reserved._
 
 Redistribution and use in source and binary forms, with or without
