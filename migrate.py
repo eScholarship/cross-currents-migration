@@ -39,12 +39,6 @@
 
 # TODO: finish up getting the metadata in the right slots for a batch
 # - these remain: 
-#     - pub_order
-#     - disciplines
-#     - keywords
-#     - abstract
-#     - acknowledgements
-#     - pdf_url
 #     - supplementalfile_url
 #     - supplementafile_label
 #     - supplementalfile_description
@@ -58,12 +52,15 @@ import re
 from nameparser import HumanName
 from urlextract import URLExtract
 import urllib
+import html
 
 def pq():
-  print('"', end='')
+  # print('"', end='') # suitable for CSV, we're going for TSV, so skip
+  print ('', end='')
 
 def pqc():
-  print('",', end='')
+  # print('",', end='') # suitable for CSV, we're going for TSV, use a tab
+  print ('\t', end='')
 
 def cleanhtml(raw_html):
   cleanr = re.compile('<.*?>')
@@ -72,9 +69,14 @@ def cleanhtml(raw_html):
   cleantext = re.sub(cleanr, '', cleantext)
   return cleantext
 
+def stripnewlines(raw_text):
+  cleanr = re.compile('\n')
+  cleantext = re.sub(cleanr, ' ', raw_text)
+  return cleantext
+
 csv.field_size_limit(sys.maxsize)
 
-cdl_headers='unit_id,eschol_id,journal,volume,issue,pub_date,title,pub_status,peer_review,section_header,author_firstname,author_middlename,author_lastname,author_suffix,author_institution,author_email,org_author,doi,first_page,last_page,issn,pub_order,disciplines,keywords,abstract,acknowledgements,pdf_url,supplementalfile_url,supplementafile_label,supplementalfile_description'
+cdl_headers="unit_id\teschol_id\tjournal\tvolume\tissue\tpub_date\ttitle\tpub_status\tpeer_review\tsection_header\tauthor_firstname\tauthor_middlename\tauthor_lastname\tauthor_suffix\tauthor_institution\tauthor_email\torg_author\tdoi\tfirst_page\tlast_page\tissn\tpub_order\tdisciplines\tkeywords\tabstract\tacknowledgements\tpdf_url\tsupplementalfile_url\tsupplementafile_label\tsupplementalfile_description"
 
 ######### step one, gather issue data into a set of dictionaries
 
@@ -142,7 +144,8 @@ with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvf
 
     #title
     pq()
-    print(row['Title'], end='')
+    title = html.unescape(row['Title'])
+    print(title, end='')
     pqc()
     
     #pub_status
@@ -266,7 +269,7 @@ with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvf
     #keywords
     # listed at the end of the abstract, a line that starts: <p><strong>Keywords</strong>:
     pq()
-    abstract = row['Abstract']
+    abstract = stripnewlines(row['Abstract'])
     # commenting out keyword extraction because we don't actually use keywords, but, I will leave this here as proof that I figured out how to extract them from the abstract
     # if abstract.__len__() > 0:
     #   lines_in_abstract = abstract.splitlines()
@@ -308,6 +311,6 @@ with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvf
     
     #supplementalfile_description
     pq()
-    pqc()
+    pq()
 
     print('') # let's wrap this up
