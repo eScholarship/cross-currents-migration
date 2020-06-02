@@ -65,8 +65,6 @@ def pqc():
 def cleanhtml(raw_html):
   cleanr = re.compile('<.*?>')
   cleantext = re.sub(cleanr, '', raw_html)
-  cleanr = re.compile('Keywords: ')
-  cleantext = re.sub(cleanr, '', cleantext)
   return cleantext
 
 def stripnewlines(raw_text):
@@ -74,9 +72,23 @@ def stripnewlines(raw_text):
   cleantext = re.sub(cleanr, ' ', raw_text)
   return cleantext
 
+def striptabs(raw_text):
+  cleanr = re.compile('\t')
+  cleantext = re.sub(cleanr, '', raw_text)
+  return cleantext
+
+def remove_guest_editor_title_from_name(raw_name):
+  cleanr = re.compile('Guest editor, ')
+  cleantext = re.sub(cleanr, '', raw_name)
+  cleanr = re.compile('Guest editor ')
+  cleantext = re.sub(cleanr, '', cleantext)
+  cleanr = re.compile('Guest co-editor ')
+  cleantext = re.sub(cleanr, '', cleantext)
+  return cleantext
+
 csv.field_size_limit(sys.maxsize)
 
-cdl_headers="unit_id\teschol_id\tjournal\tvolume\tissue\tpub_date\ttitle\tpub_status\tpeer_review\tsection_header\tauthor_firstname\tauthor_middlename\tauthor_lastname\tauthor_suffix\tauthor_institution\tauthor_email\torg_author\tdoi\tfirst_page\tlast_page\tissn\tpub_order\tdisciplines\tkeywords\tabstract\tacknowledgements\tpdf_url\tsupplementalfile_url\tsupplementafile_label\tsupplementalfile_description"
+cdl_headers="unit_id\teschol_id\tjournal\tvolume\tissue\tpub_date\ttitle\tpub_status\tpeer_review\tsection_header\tauthor_firstname\tauthor_middlename\tauthor_lastname\tauthor_suffix\tauthor_institution\tauthor_email\torg_author\tdoi\tfirst_page\tlast_page\tissn\tpub_order\tdisciplines\tkeywords\tabstract\tacknowledgements\tpdf_url\tsupplementalfile_url\tsupplementalfile_label\tsupplementalfile_description"
 
 ######### step one, gather issue data into a set of dictionaries
 
@@ -103,12 +115,14 @@ with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvf
 
   for row in article_reader:
 
-    #short-circuit this by skipping all photo essays, Readings - Info and Editors' Notes
+    #short-circuit this by skipping all photo essays, Readings - Info and Editors' Notes, Book Reviews
     if row['Content type']=='Photo Essay':
       continue
     if row['Content type']=='Readings - Info':
       continue
     if row['Article Type']=='Editors&#039; Note':
+      continue
+    if row['Content type']=='Book Review':
       continue
 
     #unit_id (always 'crossscurrents')
@@ -144,7 +158,7 @@ with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvf
 
     #title
     pq()
-    title = html.unescape(row['Title'])
+    title = striptabs(html.unescape(row['Title'])).strip()
     print(title, end='')
     pqc()
     
@@ -165,7 +179,7 @@ with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvf
     
     # And now we begin our author name parsing operation
 
-    author_and_affiliation = row['Author & Affiliation']
+    author_and_affiliation = remove_guest_editor_title_from_name(row['Author & Affiliation'])
 
     # pq()
     # print ("author-and-affiliation-goes-here --->", end='')
@@ -227,17 +241,20 @@ with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvf
     
     #doi
     # Hmm.... there are some DOIs present in the export, but they are not in a consistent location, skip for now.
+    # one possibility is to concat all the possible fields that might have a DOI, then extract from that concatenation
+    # TODO: try to get a DOI from our data
     pq()
     pqc()
 
     #first_page
+    #124-151
     pq()
     pages = row['Page Numbers']
     if len(pages.split('-')) > 1: 
       first_page = pages.split('-')[0]
     else:
       first_page = ''
-    if len(pages.split('-')) > 2:
+    if len(pages.split('-')) > 1:
       last_page = pages.split('-')[1]
     else:
       last_page = ''
@@ -258,7 +275,11 @@ with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvf
     
     #pub_order
     pq()
-    print(row['Sort Order'], end='')
+    pub_order = int(row['Sort Order'])
+    if pub_order > 0:
+      print(row['Sort Order'], end='')
+    else:
+      print('0', end='')
     pqc()
     
     #disciplines
@@ -269,7 +290,7 @@ with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvf
     #keywords
     # listed at the end of the abstract, a line that starts: <p><strong>Keywords</strong>:
     pq()
-    abstract = stripnewlines(row['Abstract'])
+    abstract = striptabs(cleanhtml(stripnewlines(row['Abstract']))).strip()
     # commenting out keyword extraction because we don't actually use keywords, but, I will leave this here as proof that I figured out how to extract them from the abstract
     # if abstract.__len__() > 0:
     #   lines_in_abstract = abstract.splitlines()

@@ -1,5 +1,8 @@
 #!/bin/sh
 
+#addbom.sh is from this fine (and helpful) Stack Overflow answer:
+# https://stackoverflow.com/questions/3127436/adding-bom-to-utf-8-files#3293858
+
 if [ $# -eq 0 ]
 then
         echo usage $0 files ...
