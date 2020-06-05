@@ -44,7 +44,7 @@
 #     - supplementalfile_description
 #
 # TODO: figure out where to put any extra metadata
-# TODO: figure out whether multi-author-name-handling is important, and what to do about it
+# DOING: figure out whether multi-author-name-handling is important, and what to do about it
 
 import sys
 import csv
@@ -53,6 +53,8 @@ from nameparser import HumanName
 from urlextract import URLExtract
 import urllib
 import html
+
+### BEGIN METHODS
 
 def pq():
   # print('"', end='') # suitable for CSV, we're going for TSV, so skip
@@ -77,14 +79,63 @@ def striptabs(raw_text):
   cleantext = re.sub(cleanr, '', raw_text)
   return cleantext
 
-def remove_guest_editor_title_from_name(raw_name):
+def remove_nonname_text_from_name(raw_name):
   cleanr = re.compile('Guest editor, ')
   cleantext = re.sub(cleanr, '', raw_name)
   cleanr = re.compile('Guest editor ')
   cleantext = re.sub(cleanr, '', cleantext)
   cleanr = re.compile('Guest co-editor ')
   cleantext = re.sub(cleanr, '', cleantext)
+  cleanr = re.compile(' with an addendum by guest co-editor ')
+  cleantext = re.sub(cleanr, '', cleantext)
   return cleantext
+
+def print_author_info(raw_text, primary_author=True):
+
+  if not primary_author:
+    print(10*'\t', end='') # author names are 10 fields in, non-primary authors are printed after the first row, so, indent 10 fields
+
+  author_and_affiliation_list = raw_text.split(',')
+  author = author_and_affiliation_list[0]
+  if len(author_and_affiliation_list) > 1:
+    affiliation = author_and_affiliation_list[1]
+  else:
+    affiliation = ''
+
+  #crank up the human name machine
+  name = HumanName(author.strip())
+
+  #author_firstname
+  pq()
+  print (name.first, end='')
+  pqc()
+  
+  #author_middlename
+  pq()
+  print (name.middle, end='')
+  pqc()
+  
+  #author_lastname
+  pq()
+  print (name.last, end='')
+  pqc()
+  
+  #author_suffix
+  pq()
+  print (name.suffix, end='')
+  pqc()
+  
+  #author_institution
+  pq()
+  print(affiliation, end='')
+  
+  # if this is the primary author, more data needs to appear after this, so print a pqc
+  if primary_author:
+    pqc()
+
+### END METHODS
+
+### BEGIN MAIN LOOP
 
 csv.field_size_limit(sys.maxsize)
 
@@ -177,57 +228,18 @@ with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvf
     print(row['Subsection'], end='')
     pqc()
     
-    # And now we begin our author name parsing operation
-
-    author_and_affiliation = remove_guest_editor_title_from_name(row['Author & Affiliation'])
-
-    # pq()
-    # print ("author-and-affiliation-goes-here --->", end='')
-    # print(author_and_affiliation)
-    # pqc()
+    # start name handling
+    author_and_affiliation = remove_nonname_text_from_name(html.unescape(row['Author & Affiliation']))
 
     if author_and_affiliation.__len__() == 0:
       print ('ERROR: null author_and_affiliation', end='')
     else:
     # NOTE: we can have more than one author and affiliation, they are split by semicolons
-    # for now, let's just grab the first set
-      primary_author_and_affiliation = author_and_affiliation.split(';')[0]
+      all_authors_list = author_and_affiliation.split(';')
+      number_of_authors = len(all_authors_list)
 
-      author_and_affiliation_list = primary_author_and_affiliation.split(',')
-      author = author_and_affiliation_list[0]
-
-      if len(author_and_affiliation_list) > 1:
-        affiliation = author_and_affiliation_list[1]
-      else:
-        affiliation = ''
-
-      #crank up the human name machine
-      name = HumanName(author.strip())
-
-      #author_firstname
-      pq()
-      print (name.first, end='')
-      pqc()
-      
-      #author_middlename
-      pq()
-      print (name.middle, end='')
-      pqc()
-      
-      #author_lastname
-      pq()
-      print (name.last, end='')
-      pqc()
-      
-      #author_suffix
-      pq()
-      print (name.suffix, end='')
-      pqc()
-      
-      #author_institution
-      pq()
-      print(affiliation, end='')
-      pqc()
+      # first handle the primary author, save the remaining authors for handling after this row is done
+      print_author_info(all_authors_list.pop(0), primary_author=True)
     
     #author_email (input can have more than one, batch only wants one)
     # TODO - handle multiple e-mail addresses correctly
@@ -334,4 +346,13 @@ with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvf
     pq()
     pq()
 
-    print('') # let's wrap this up
+    print('') # let's wrap up this row
+
+    # Handle additional authors here
+    
+    if number_of_authors > 1:      
+      for an_author_and_affiliation in all_authors_list:
+        print_author_info(an_author_and_affiliation, primary_author=False)
+        print('') # let's wrap up this row
+
+# END MAIN LOOP

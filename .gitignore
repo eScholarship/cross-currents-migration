@@ -1,4 +1,5 @@
 # no committing metadata accidentally
 *.csv
 *.tsv
+*.tsv~
 *.xlsx
