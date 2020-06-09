@@ -150,7 +150,7 @@ def print_author_info(author_raw_text, all_emails_list, primary_author=True):
 
 csv.field_size_limit(sys.maxsize)
 
-cdl_headers="unit_id\teschol_id\tjournal\tvolume\tissue\tpub_date\ttitle\tpub_status\tpeer_review\tsection_header\tauthor_firstname\tauthor_middlename\tauthor_lastname\tauthor_suffix\tauthor_institution\tauthor_email\torg_author\tdoi\tfirst_page\tlast_page\tissn\tpub_order\tdisciplines\tkeywords\tabstract\tacknowledgements\tpdf_url\tsupplementalfile_url\tsupplementalfile_label\tsupplementalfile_description"
+cdl_headers="unit_id\teschol_id\tjournal\tvolume\tissue\tpub_date\ttitle\tpub_status\tpeer_review\tsection_header\tauthor_firstname\tauthor_middlename\tauthor_lastname\tauthor_suffix\tauthor_institution\tauthor_email\torg_author\tdoi\tfirst_page\tlast_page\tissn\tpub_order\tdisciplines\tkeywords\tabstract\tcover_image\tpdf_url\tsupplementalfile_url\tsupplementalfile_label\tsupplementalfile_description"
 
 ######### step one, gather issue data into a set of dictionaries
 
@@ -331,8 +331,10 @@ with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvf
     print(abstract, end='')
     pqc()
     
-    #acknowledgements (leave blank, but might be able to extract from the article body)
+    #cover_image (may not work, but might as well try)
     pq()
+    cover_image = 'https://cross-currents.berkeley.edu'+row['Image']
+    print(cover_image, end='')
     pqc()
     
     #pdf_url, extract from the File column
