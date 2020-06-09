@@ -90,12 +90,12 @@ def remove_nonname_text_from_name(raw_name):
   cleantext = re.sub(cleanr, '', cleantext)
   return cleantext
 
-def print_author_info(raw_text, primary_author=True):
+def print_author_info(author_raw_text, all_emails_list, primary_author=True):
 
   if not primary_author:
     print(10*'\t', end='') # author names are 10 fields in, non-primary authors are printed after the first row, so, indent 10 fields
 
-  author_and_affiliation_list = raw_text.split(',')
+  author_and_affiliation_list = author_raw_text.split(',')
   author = author_and_affiliation_list[0]
   if len(author_and_affiliation_list) > 1:
     affiliation = author_and_affiliation_list[1]
@@ -128,6 +128,17 @@ def print_author_info(raw_text, primary_author=True):
   #author_institution
   pq()
   print(affiliation, end='')
+  pqc()
+
+  #author_email
+  pq()
+  author_email_list = [x for x in all_emails_list if re.search(name.last.lower(), x)]
+  if len(author_email_list) > 0:
+    # well, this is easy, we have a match of last name and an e-mail address, print the first one
+    print(author_email_list[0], end='')
+  else:
+    # huh, weird, print 'em all, let a human figure it out
+    print(';'.join(all_emails_list), end='')
   
   # if this is the primary author, more data needs to appear after this, so print a pqc
   if primary_author:
@@ -236,16 +247,17 @@ with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvf
     else:
     # NOTE: we can have more than one author and affiliation, they are split by semicolons
       all_authors_list = author_and_affiliation.split(';')
+      all_emails_list = row['Author Email'].split(';')
       number_of_authors = len(all_authors_list)
 
       # first handle the primary author, save the remaining authors for handling after this row is done
-      print_author_info(all_authors_list.pop(0), primary_author=True)
+      print_author_info(all_authors_list.pop(0), all_emails_list, primary_author=True)
     
-    #author_email (input can have more than one, batch only wants one)
-    # TODO - handle multiple e-mail addresses correctly
-    pq()
-    print(row['Author Email'], end='')
-    pqc()
+    # #author_email (input can have more than one, batch only wants one)
+    # # TODO - handle multiple e-mail addresses correctly
+    # pq()
+    # print(row['Author Email'], end='')
+    # pqc()
     
     #org_author (not used for Cross-Currents, ignore)
     pq()
@@ -352,7 +364,8 @@ with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvf
     
     if number_of_authors > 1:      
       for an_author_and_affiliation in all_authors_list:
-        print_author_info(an_author_and_affiliation, primary_author=False)
+        i = all_authors_list.index(an_author_and_affiliation)
+        print_author_info(an_author_and_affiliation, all_emails_list, primary_author=False)
         print('') # let's wrap up this row
 
 # END MAIN LOOP
