@@ -97,8 +97,10 @@ def print_author_info(author_raw_text, all_emails_list, primary_author=True):
 
   author_and_affiliation_list = author_raw_text.split(',')
   author = author_and_affiliation_list[0]
-  if len(author_and_affiliation_list) > 1:
-    affiliation = author_and_affiliation_list[1]
+  number_of_authors = len(author_and_affiliation_list)
+  if number_of_authors > 1:
+    # affiliation = author_and_affiliation_list[1]
+    affiliation = ', '.join(author_and_affiliation_list[1:number_of_authors])
   else:
     affiliation = ''
 
@@ -159,7 +161,7 @@ IssueDate = dict()
 IssueISSN = dict()
 IssueTitle = dict()
 
-with open('cross-currents-export-issues-1586192032.csv', 'r', 1, 'utf-8-sig') as csvfile:
+with open('cross-currents-export-issues-1591737562.csv', 'r', 1, 'utf-8-sig') as csvfile:
   issue_reader = csv.DictReader(csvfile, delimiter=",", quotechar='"')
   for row in issue_reader:
     # print("setting Issue Date for Issue "+ row['Issue Number'] + " to " + row['Issue Date'])
@@ -170,7 +172,7 @@ with open('cross-currents-export-issues-1586192032.csv', 'r', 1, 'utf-8-sig') as
 
 ######## step two, process the article data
 
-with open('cross-currents-articles-1586192134.csv', 'r', 1, 'utf-8-sig') as csvfile:
+with open('cross-currents-articles-1591737565.csv', 'r', 1, 'utf-8-sig') as csvfile:
   article_reader = csv.DictReader(csvfile, delimiter=",", quotechar='"')
 
   print(cdl_headers)
