@@ -226,14 +226,14 @@ with open('cross-currents-articles-1591737565.csv', 'r', 1, 'utf-8-sig') as csvf
     print(title, end='')
     pqc()
     
-    #pub_status
+    #pub_status (always internalPub)
     pq()
-    print('externalPub', end='')
+    print('internalPub', end='')
     pqc()
     
     #peer_review
     pq()
-    print('no', end='')
+    print('yes', end='') # always yes
     pqc()
     
     #section_header
