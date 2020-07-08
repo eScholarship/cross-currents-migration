@@ -1,0 +1,30 @@
+"Content ID"
+"Issue ID"
+"Issue Number"
+Title
+"Content type"
+"Article Type"
+Subsection
+"Author & Affiliation"
+"Author Email"
+"Authors, Citation Format"
+Image
+"Book Covers"
+"Page Numbers"
+"Recommended Citation"
+"Article Region"
+File
+"Sort Order"
+Books
+Abstract
+"Article Preview"
+"Article Body"
+"Essay Title"
+"Essay Attribution Label"
+"Artist Name"
+"Essay Author"
+Essay
+"Alternate Essay"
+"Alternate ToC Image (Reading)"
+"Editor Display (Reading)"
+Link

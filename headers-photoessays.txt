@@ -1,0 +1,22 @@
+"Content ID"
+"Photo Essay ID"
+"Issue ID"
+"Issue Number"
+Title
+"Alternate Title"
+"Content type"
+"Author & Affiliation"
+"Author Email"
+"Authors, Citation Format"
+Image
+Photo
+"Page Numbers"
+"Article Region"
+File
+"Sort Order"
+"Statement Type"
+"Article Body"
+"Description"
+"Alternate Description"
+Place
+"Link to Content"

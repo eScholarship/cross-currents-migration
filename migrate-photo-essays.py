@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-# MIGRATE.PY
+# MIGRATE-PHOTO-ESSAYS.PY
 # - A quick little Python3 script to convert Cross-Currents eJournal metadata into 
 #   eScholarship batch load format
-# - Currently skips photo essays, intentionally, we'll work on those next
+# - only handles photo essays
 
 # HEADERS IN THE ARTICLES DATA -> CDL HEADER
 # Content ID
@@ -151,7 +151,60 @@ cdl_headers="unit_id\teschol_id\tjournal\tvolume\tissue\tpub_date\ttitle\tpub_st
 IssueDate = dict()
 IssueISSN = dict()
 IssueTitle = dict()
+IssueNumber = dict()
+photoessay_element = dict()
+photo_metadata = dict()
+photoessay_article = dict()
 
+# read ALL photoessay rows from the articles CSV into a dictionary
+with open('cross-currents-articles-1591737565.csv', 'r', 1, 'utf-8-sig') as csvfile:
+  article_reader = csv.DictReader(csvfile, delimiter=",", quotechar='"')
+  for row in article_reader:
+    key = row['Photo Essay ID']
+    if key in photoessay_article:
+      # implement duplicate handling here, if necessary, but... for now, just skip duplicates
+      pass
+    # store this article row in the photoessay_article dictionary
+    else:
+      if row['Content type'] == 'Photo Essay':
+        photoessay_article[key] = row
+      else:
+        pass
+
+# read ALL non-photo rows into a dictionary, so we can refer back to this metadata as we need
+with open('cross-currents-photoessays-1591737571.csv', 'r', 1, 'utf-8-sig') as csvfile:
+  photoessay_reader = csv.DictReader(csvfile, delimiter=",", quotechar='"')
+  for row in photoessay_reader:
+    key = row['Photo Essay ID']
+    if key in photoessay_element:
+      # implement duplicate handling here, if necessary, but... for now, just skip duplicates
+      # TODO: for non-photo rows, there are two kinds of content: Photo Essay - Bio, Photo Essay - Statement, we should parse Bio and Statement into their own dictionaries? Or just create a list like we do with the photos
+      # TODO: we probably need to get the main photoessay metadata from the articles csv, which means another dictionary
+      pass
+    if row['Content type']=='Photo Essay - Photo':
+      pass #and skip photo rows
+    # store this bio/statement row in the photoessay_element dictionary
+    else:
+      photoessay_element[key] = row
+
+# go through the photoessays CSV again, this time gathering up the photos, store them in a Dictionary, using a list to hold all photo rows
+with open('cross-currents-photoessays-1591737571.csv', 'r', 1, 'utf-8-sig') as csvfile:
+  photo_reader =  csv.DictReader(csvfile, delimiter=",", quotechar='"')
+  for row in photo_reader:
+    key = row['Photo Essay ID']
+    if row['Content type']=='Photo Essay - Photo':
+      if key in photo_metadata:
+        # append this photo row to the list
+        list_of_photos = photo_metadata[key]
+      else:
+        # store this photo row in the list in the photo_metadata dictionary
+        list_of_photos = []
+      list_of_photos.append(row)
+      photo_metadata[key] = list_of_photos
+    else:
+      pass
+
+# save some Issue data in dictionaries for later lookup
 with open('cross-currents-export-issues-1591737562.csv', 'r', 1, 'utf-8-sig') as csvfile:
   issue_reader = csv.DictReader(csvfile, delimiter=",", quotechar='"')
   for row in issue_reader:
@@ -161,24 +214,13 @@ with open('cross-currents-export-issues-1591737562.csv', 'r', 1, 'utf-8-sig') as
     IssueISSN[int(row['Issue Number'])]=row['ISSN']
 
 
-######## step two, process the article data
+######## step two, process the photoessay data
 
-with open('cross-currents-articles-1591737565.csv', 'r', 1, 'utf-8-sig') as csvfile:
-  article_reader = csv.DictReader(csvfile, delimiter=",", quotechar='"')
+print(cdl_headers)
 
-  print(cdl_headers)
+# loop through the photoessay_element dictionary, and the photo_metadata dictionary
 
-  for row in article_reader:
-
-    #short-circuit this by skipping all photo essays, Readings - Info and Editors' Notes, Book Reviews
-    if row['Content type']=='Photo Essay':
-      continue
-    if row['Content type']=='Readings - Info':
-      continue
-    if row['Article Type']=='Editors&#039; Note':
-      continue
-    if row['Content type']=='Book Review':
-      continue
+for photoessay in photoessay_article.values():
 
     #unit_id (always 'crossscurrents')
     pq()
@@ -200,11 +242,17 @@ with open('cross-currents-articles-1591737565.csv', 'r', 1, 'utf-8-sig') as csvf
     print('1', end='')
     pqc()
 
-    #issue (convert to integer and remember)
+    #issue
     pq()
-    print(row['Issue Number'], end='')
+    try:
+      i = int(photoessay['Issue Number']) # save this for later lookups
+    except ValueError:
+      # how in the world did we end up with a missing issue number? fix this by hand and glower about it for weeks
+      i=0 # of course, zero will throw key errors below... so... yeah, you'll have to fix it by hand
+
+    print(i, end='')
     pqc()
-    i = int(row['Issue Number']) # save this for later lookups
+    
     
     #pub_date (look this up based on issue number)
     pq()
@@ -213,7 +261,7 @@ with open('cross-currents-articles-1591737565.csv', 'r', 1, 'utf-8-sig') as csvf
 
     #title
     pq()
-    title = striptabs(html.unescape(row['Title'])).strip()
+    title = striptabs(html.unescape(photoessay['Title'])).strip()
     print(title, end='')
     pqc()
     
@@ -228,29 +276,28 @@ with open('cross-currents-articles-1591737565.csv', 'r', 1, 'utf-8-sig') as csvf
     pqc()
     
     #section_header
-    pq()
-    print(row['Subsection'], end='')
+    # TODO: I think we might need to use this field, if it will hold info from the bio or statement
+    pq() #skip, not used for Photo Essays
     pqc()
     
     # start name handling
-    author_and_affiliation = remove_nonname_text_from_name(html.unescape(row['Author & Affiliation']))
+    author_and_affiliation = remove_nonname_text_from_name(html.unescape(photoessay['Author & Affiliation']))
 
     if author_and_affiliation.__len__() == 0:
       print ('ERROR: null author_and_affiliation', end='')
     else:
     # NOTE: we can have more than one author and affiliation, they are split by semicolons
       all_authors_list = author_and_affiliation.split(';')
-      all_emails_list = row['Author Email'].split(';')
+      all_emails_list = photoessay['Author Email'].split(';')
       number_of_authors = len(all_authors_list)
 
-      # first handle the primary author, save the remaining authors for handling after this row is done
+      # first handle the primary author, save the remaining authors for handling after this photoessay is done
       print_author_info(all_authors_list.pop(0), all_emails_list, primary_author=True)
-    
+
     #org_author (not used for Cross-Currents, ignore)
     pq()
     pqc()
     
-    #doi
     #doi: unable to parse from given data, most DOIs contained are for citations, skip
     pq()
     pqc()
@@ -258,7 +305,7 @@ with open('cross-currents-articles-1591737565.csv', 'r', 1, 'utf-8-sig') as csvf
     #first_page
     #124-151
     pq()
-    pages = row['Page Numbers']
+    pages = photoessay['Page Numbers']
     if len(pages.split('-')) > 1: 
       first_page = pages.split('-')[0]
     else:
@@ -284,9 +331,12 @@ with open('cross-currents-articles-1591737565.csv', 'r', 1, 'utf-8-sig') as csvf
     
     #pub_order
     pq()
-    pub_order = int(row['Sort Order'])
+    try:
+      pub_order = int(photoessay['Sort Order'])
+    except ValueError:
+      pub_order = 0
     if pub_order > 0:
-      print(row['Sort Order'], end='')
+      print(photoessay['Sort Order'], end='')
     else:
       print('0', end='')
     pqc()
@@ -297,62 +347,73 @@ with open('cross-currents-articles-1591737565.csv', 'r', 1, 'utf-8-sig') as csvf
     pqc()
     
     #keywords
-    # listed at the end of the abstract, a line that starts: <p><strong>Keywords</strong>:
     pq()
-    abstract = striptabs(cleanhtml(stripnewlines(row['Abstract']))).strip()
-    # commenting out keyword extraction because we don't actually use keywords, but, I will leave this here as proof that I figured out how to extract them from the abstract
-    # if abstract.__len__() > 0:
-    #   lines_in_abstract = abstract.splitlines()
-    #   last_line = len(lines_in_abstract) -1 #lists are zero-based 
-    #   raw_keywords = lines_in_abstract[last_line]
-    #   keywords = cleanhtml(raw_keywords)
-    #   print(keywords, end='')
-    # else:
-    print('', end='')
     pqc()
     
     #abstract
     pq()
-    print(abstract, end='')
     pqc()
     
     #cover_image (may not work, but might as well try)
     pq()
-    cover_image = 'https://cross-currents.berkeley.edu'+row['Image']
+    cover_image = 'https://cross-currents.berkeley.edu'+photoessay['Image']
     print(cover_image, end='')
     pqc()
     
     #pdf_url, extract from the File column
-    extractor = URLExtract()
-    pdf_urls = extractor.find_urls(row['File'])
-    if len(pdf_urls) >= 1: #sometimes the extractor finds more than one URL, we should just always use the first
-      pdf_url = pdf_urls[0]
-    else:
-      pdf_url = 'ERROR, no PDF URL found, content-type: ' + row['Content type'] + '; Content ID: ' + row['Content ID'] + '; Article Type: ' + row['Article Type']
-    pq()
-    print(urllib.parse.unquote(pdf_url), end='')
+    # extractor = URLExtract()
+    # pdf_urls = extractor.find_urls(photoessay['File'])
+    # if len(pdf_urls) >= 1: #sometimes the extractor finds more than one URL, we should just always use the first
+    #   pdf_url = pdf_urls[0]
+    # else:
+    #   pdf_url = 'ERROR, no PDF URL found, content-type: ' + photoessay['Content type'] + '; Content ID: ' + photoessay['Content ID'] + '; Article Type: ' + photoessay['Article Type']
+    # pq()
+    # print(urllib.parse.unquote(pdf_url), end='')
     pqc()
-    
-    #supplementalfile_url
-    pq()
-    pqc()
-    
-    #supplementafile_label
-    pq()
-    pqc()
-    
-    #supplementalfile_description
-    pq()
-    pq()
 
-    print('') # let's wrap up this row
+    # Add 3 blank cells here at the end, because supplemental files follow on additional lines
+    print(3*'\t', end='')    
 
-    # Handle additional authors here
-    
-    if number_of_authors > 1:      
-      for an_author_and_affiliation in all_authors_list:
-        i = all_authors_list.index(an_author_and_affiliation)
-        print_author_info(an_author_and_affiliation, all_emails_list, primary_author=False)
-        print('') # let's wrap up this row
+    print('') # let's wrap up this photoessay
+
+    # TODO: print out the bio and statement here as supplemental files, construct a PDF url for each, using data in the photoessay_element dictionary
+    for element in photoessay_element.values():
+      if element['Photo Essay ID']==photoessay['Photo Essay ID']:
+        print(27*'\t', end='') # skip 27 fields for each element row, because that's how many fields precede the supplemental file fields
+
+        #supplementalfile_url
+
+        #supplementalfile_label
+
+        #supplementalfile_description
+
+        print('') # let's wrap up this element
+
+
+    # finish up with the indivitual photos as supplemental files here
+    for photos in photo_metadata.values():
+      # photos is a list of dictionaries, we need to iterate through that list
+      for photo in photos:
+        if photo['Photo Essay ID']==photoessay['Photo Essay ID']:
+
+          print(27*'\t', end='') # skip 27 fields for each photo row, because that's how many fields precede the supplemental file fields
+
+          #supplementalfile_url
+          pq()
+          photo_image = 'https://cross-currents.berkeley.edu'+photo['Photo']
+          print(photo_image, end='')
+          pqc()
+          
+          #supplementafile_label
+          pq()
+          print('Photograph', end='')
+          pqc()
+          
+          #supplementalfile_description
+          pq()
+          print(striptabs(cleanhtml(stripnewlines(photo['Description']))).strip(), end='')
+          pq()
+
+          print('') # let's wrap up this photo
 
 # END MAIN LOOP
