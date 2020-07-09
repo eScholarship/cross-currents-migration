@@ -160,7 +160,7 @@ photoessay_article = dict()
 with open('cross-currents-articles-1591737565.csv', 'r', 1, 'utf-8-sig') as csvfile:
   article_reader = csv.DictReader(csvfile, delimiter=",", quotechar='"')
   for row in article_reader:
-    key = row['Photo Essay ID']
+    key = row['Content ID']
     if key in photoessay_article:
       # implement duplicate handling here, if necessary, but... for now, just skip duplicates
       pass
@@ -168,18 +168,17 @@ with open('cross-currents-articles-1591737565.csv', 'r', 1, 'utf-8-sig') as csvf
     else:
       if row['Content type'] == 'Photo Essay':
         photoessay_article[key] = row
+        photoessay_article[key]['Photo Essay ID'] = row['Content ID']
       else:
         pass
 
-# read ALL non-photo rows into a dictionary, so we can refer back to this metadata as we need
+# read ALL non-photo rows into a dictionary, so we can refer back to each element as we need
 with open('cross-currents-photoessays-1591737571.csv', 'r', 1, 'utf-8-sig') as csvfile:
   photoessay_reader = csv.DictReader(csvfile, delimiter=",", quotechar='"')
   for row in photoessay_reader:
     key = row['Photo Essay ID']
     if key in photoessay_element:
       # implement duplicate handling here, if necessary, but... for now, just skip duplicates
-      # TODO: for non-photo rows, there are two kinds of content: Photo Essay - Bio, Photo Essay - Statement, we should parse Bio and Statement into their own dictionaries? Or just create a list like we do with the photos
-      # TODO: we probably need to get the main photoessay metadata from the articles csv, which means another dictionary
       pass
     if row['Content type']=='Photo Essay - Photo':
       pass #and skip photo rows
@@ -276,8 +275,8 @@ for photoessay in photoessay_article.values():
     pqc()
     
     #section_header
-    # TODO: I think we might need to use this field, if it will hold info from the bio or statement
-    pq() #skip, not used for Photo Essays
+    pq()
+      # skip for now
     pqc()
     
     # start name handling
@@ -361,14 +360,14 @@ for photoessay in photoessay_article.values():
     pqc()
     
     #pdf_url, extract from the File column
-    # extractor = URLExtract()
-    # pdf_urls = extractor.find_urls(photoessay['File'])
-    # if len(pdf_urls) >= 1: #sometimes the extractor finds more than one URL, we should just always use the first
-    #   pdf_url = pdf_urls[0]
-    # else:
-    #   pdf_url = 'ERROR, no PDF URL found, content-type: ' + photoessay['Content type'] + '; Content ID: ' + photoessay['Content ID'] + '; Article Type: ' + photoessay['Article Type']
-    # pq()
-    # print(urllib.parse.unquote(pdf_url), end='')
+    extractor = URLExtract()
+    pdf_urls = extractor.find_urls(photoessay['File'])
+    if len(pdf_urls) >= 1: #sometimes the extractor finds more than one URL, we should just always use the first
+      pdf_url = pdf_urls[0]
+    else:
+      pdf_url = 'ERROR, no PDF URL found, content-type: ' + photoessay['Content type'] + '; Content ID: ' + photoessay['Content ID'] + '; Article Type: ' + photoessay['Article Type']
+    pq()
+    print(urllib.parse.unquote(pdf_url), end='')
     pqc()
 
     # Add 3 blank cells here at the end, because supplemental files follow on additional lines
@@ -376,16 +375,31 @@ for photoessay in photoessay_article.values():
 
     print('') # let's wrap up this photoessay
 
-    # TODO: print out the bio and statement here as supplemental files, construct a PDF url for each, using data in the photoessay_element dictionary
+    # print out the bio and statement here as supplemental files, construct a PDF url for each, using data in the photoessay_element dictionary
     for element in photoessay_element.values():
       if element['Photo Essay ID']==photoessay['Photo Essay ID']:
         print(27*'\t', end='') # skip 27 fields for each element row, because that's how many fields precede the supplemental file fields
 
-        #supplementalfile_url
+        #supplementalfile_url, extract from the File column
+        extractor = URLExtract()
+        pdf_urls = extractor.find_urls(element['File'])
+        if len(pdf_urls) >= 1: #sometimes the extractor finds more than one URL, we should just always use the first
+          pdf_url = pdf_urls[0]
+        else:
+          pdf_url = 'ERROR, no PDF URL found, content-type: ' + element['Content type'] + '; Photo Essay ID: ' + element['Photo Essay ID'] 
+        pq()
+        print(urllib.parse.unquote(pdf_url), end='')
+        pqc()
 
         #supplementalfile_label
+        pq()
+        print(element['Content type'], end='')
+        pqc()
 
-        #supplementalfile_description
+        #supplementalfile_description -- if Description isn't sufficient, try Article body
+        pq()
+        print(element['Description'], end='')
+        pqc()
 
         print('') # let's wrap up this element
 
