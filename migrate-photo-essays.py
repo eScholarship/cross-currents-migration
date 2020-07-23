@@ -394,8 +394,15 @@ for photoessay in photoessay_article.values():
 
     print('') # let's wrap up this photoessay
 
-    # TODO: we may have multiple authors, so... we need to print them out here... this will probably require some merging by hand
-    # by a human, after the fact, unless we want to get really fancy with things.
+
+    # Handle additional authors here
+    
+    if number_of_authors > 1:      
+      for an_author_and_affiliation in all_authors_list:
+        print_author_info(an_author_and_affiliation, primary_author=False)
+        print('') # let's wrap up this row
+
+#### BEGIN SUPPLEMENTAL FILES (STATEMENT, BIO, PHOTOS)
 
     # print out the bio and statement here as supplemental files, construct a PDF url for each, using data in the photoessay_element dictionary
     for element in photoessay_element.values():
@@ -432,7 +439,17 @@ for photoessay in photoessay_article.values():
       for photo in photos:
         if photo['Photo Essay ID']==photoessay['Photo Essay ID']:
 
-          print(27*'\t', end='') # skip 27 fields for each photo row, because that's how many fields precede the supplemental file fields
+          # print the Artist Name from the articles CSV here, since they're the "author" of this photo
+          # This will require cleaning by hand, the Artist Name field sometimes contains non-name data
+          # FIXME: clean up the Artist Name to just limit it to a name and possibly an institution (i.e. make an adapter here)
+          print(5*'\t', end='')
+          print(IssueDate[i], end='')
+          print(5*'\t', end='')
+          print_author_info(photoessay['Artist Name'], True)
+          pqc()
+
+
+          print(11*'\t', end='') # skip 11 fields for each photo row, because that's how many fields are between author_email and suplementalfile_url
 
           #supplementalfile_url
           pq()
@@ -451,5 +468,8 @@ for photoessay in photoessay_article.values():
           pq()
 
           print('') # let's wrap up this photo
+
+#### END SUPPLEMENTAL FILES (STATEMENT, BIO, PHOTOS)
+
 
 # END MAIN LOOP
