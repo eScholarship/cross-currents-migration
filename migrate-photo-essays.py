@@ -44,6 +44,7 @@ from nameparser import HumanName
 from urlextract import URLExtract
 import urllib
 import html
+import string
 
 ### BEGIN METHODS
 
@@ -70,6 +71,9 @@ def striptabs(raw_text):
   cleantext = re.sub(cleanr, '', raw_text)
   return cleantext
 
+def strip_punctuation(raw_text):
+  return raw_text.translate(str.maketrans('', '', string.punctuation))
+
 def remove_nonname_text_from_name(raw_name):
   cleanr = re.compile('Guest editor, ')
   cleantext = re.sub(cleanr, '', raw_name)
@@ -79,24 +83,32 @@ def remove_nonname_text_from_name(raw_name):
   cleantext = re.sub(cleanr, '', cleantext)
   cleanr = re.compile(' with an addendum by guest co-editor ')
   cleantext = re.sub(cleanr, '', cleantext)
+  cleanr = re.compile(' and ')
+  cleantext = re.sub(cleanr, '', cleantext)
   return cleantext
 
-def print_author_info(author_raw_text, all_emails_list, primary_author=True):
+def print_author_info(author_raw_text, primary_author=True):
+
+  # this method is designed to print only one author name
 
   if not primary_author:
     print(10*'\t', end='') # author names are 10 fields in, non-primary authors are printed after the first row, so, indent 10 fields
 
-  author_and_affiliation_list = author_raw_text.split(',')
-  author = author_and_affiliation_list[0]
-  number_of_authors = len(author_and_affiliation_list)
-  if number_of_authors > 1:
-    # affiliation = author_and_affiliation_list[1]
-    affiliation = ', '.join(author_and_affiliation_list[1:number_of_authors])
+  # alright, sometimes we'll just get a name, somtimes we'll get a name and an institution
+  # a name is any string without a paren
+  # a name and institution is: name (institution)
+  # use a regex: (.+) \((.+)\) 
+
+  match = re.search('(.+) \((.+)\)', author_raw_text)
+  if match:
+    author = match.group(1).strip()
+    affiliation = match.group(2).strip()
   else:
+    author = author_raw_text.strip()
     affiliation = ''
 
   #crank up the human name machine
-  name = HumanName(author.strip())
+  name = HumanName(author)
 
   #author_firstname
   pq()
@@ -123,16 +135,9 @@ def print_author_info(author_raw_text, all_emails_list, primary_author=True):
   print(affiliation, end='')
   pqc()
 
-  #author_email
+  #author_email, skip, photoessays don't include this info
   pq()
-  author_email_list = [x for x in all_emails_list if re.search(name.last.lower(), x)]
-  if len(author_email_list) > 0:
-    # well, this is easy, we have a match of last name and an e-mail address, print the first one
-    print(author_email_list[0], end='')
-  else:
-    # huh, weird, print 'em all, let a human figure it out
-    print(';'.join(all_emails_list), end='')
-  
+
   # if this is the primary author, more data needs to appear after this, so print a pqc
   if primary_author:
     pqc()
@@ -221,6 +226,11 @@ print(cdl_headers)
 
 for photoessay in photoessay_article.values():
 
+    # #use temporarily for sleuthing:
+    # pq()
+    # print(photoessay['Link'], end='')
+    # pqc()
+
     #unit_id (always 'crossscurrents')
     pq()
     print('crosscurrents', end='')
@@ -271,28 +281,45 @@ for photoessay in photoessay_article.values():
     
     #peer_review
     pq()
-    print('yes', end='') # always yes
+    print('no', end='') # always no
     pqc()
     
     #section_header
     pq()
       # skip for now
     pqc()
-    
+
+# Author & Affiliation isn't populated for any photoessay, so we can't use it, but we *can* use Essay Author
+
     # start name handling
-    author_and_affiliation = remove_nonname_text_from_name(html.unescape(photoessay['Author & Affiliation']))
+    essay_author = remove_nonname_text_from_name(html.unescape(photoessay['Essay Author']))
 
-    if author_and_affiliation.__len__() == 0:
-      print ('ERROR: null author_and_affiliation', end='')
-    else:
-    # NOTE: we can have more than one author and affiliation, they are split by semicolons
-      all_authors_list = author_and_affiliation.split(';')
-      all_emails_list = photoessay['Author Email'].split(';')
-      number_of_authors = len(all_authors_list)
+    if essay_author.__len__() == 0:
+      essay_author = "ERROR (null essay_author, fix by hand)"
 
-      # first handle the primary author, save the remaining authors for handling after this photoessay is done
-      print_author_info(all_authors_list.pop(0), all_emails_list, primary_author=True)
+    ################### essay_author can be multiple author names, split this string
+    # first attempt, split using a comma, might be too aggressive, handle later
+    all_authors_list = essay_author.split(',')
 
+    # if we find any open parens, we've split essay_authors "too deeply" and need to re-assemble them
+    length = len(all_authors_list)
+    x = 0
+    if length > 1:
+      while x < len(all_authors_list) and x >= 0 :
+        if all_authors_list[x].find('(') >= 0 and all_authors_list[x].find(')') <= 0:
+          #combine this element and the next, then pop the next off the list, and exit this loop if we're out of elements
+          all_authors_list[x] = all_authors_list[x] + ', ' + all_authors_list.pop(x+1)
+          all_authors_list[x].strip()
+        else:
+          x = x + 1
+    
+    # all_emails_list = photoessay['Author Email'].split(';') # this is probably wasted effort, this field is blank for photo essays
+
+    number_of_authors = len(all_authors_list)
+
+    # first handle the primary author, save the remaining authors for handling after this photoessay is done
+    print_author_info(all_authors_list.pop(0), primary_author=True)
+    
     #org_author (not used for Cross-Currents, ignore)
     pq()
     pqc()
@@ -330,14 +357,6 @@ for photoessay in photoessay_article.values():
     
     #pub_order
     pq()
-    try:
-      pub_order = int(photoessay['Sort Order'])
-    except ValueError:
-      pub_order = 0
-    if pub_order > 0:
-      print(photoessay['Sort Order'], end='')
-    else:
-      print('0', end='')
     pqc()
     
     #disciplines
@@ -374,6 +393,9 @@ for photoessay in photoessay_article.values():
     print(3*'\t', end='')    
 
     print('') # let's wrap up this photoessay
+
+    # TODO: we may have multiple authors, so... we need to print them out here... this will probably require some merging by hand
+    # by a human, after the fact, unless we want to get really fancy with things.
 
     # print out the bio and statement here as supplemental files, construct a PDF url for each, using data in the photoessay_element dictionary
     for element in photoessay_element.values():
@@ -420,7 +442,7 @@ for photoessay in photoessay_article.values():
           
           #supplementafile_label
           pq()
-          print('Photograph', end='')
+          print(photo['Title'], end='')
           pqc()
           
           #supplementalfile_description
